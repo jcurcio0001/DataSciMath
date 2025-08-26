@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spinning Square Demo</title>
+  <style>
+    :root {
+      --size: 140px;
+      --speed: 2s; /* rotation duration */
+      --bg: #0ea5e9; /* default square color */
+    }
+
+    /* Page layout */
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(60% 60% at 50% 40%, #f6f9ff, #e7eefb);
+    }
+
+    .card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      width: min(560px, 92vw);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.25rem;
+    }
+
+    .stage {
+      height: 240px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fafafa;
+      margin-bottom: 16px;
+    }
+
+    /* The square */
+    .square {
+      width: var(--size);
+      height: var(--size);
+      background: var(--bg);
+      border-radius: 12px;
+      animation: spin var(--speed) linear infinite;
+      will-change: transform;
+    }
+
+    /* Pause support */
+    .paused .square { animation-play-state: paused; }
+
+    /* Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      .square { animation: none; }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row { display: flex; align-items: center; gap: 10px; }
+    .row label { width: 120px; color: #374151; font-size: .95rem; }
+    .row input[type="range"] { flex: 1; }
+
+    button {
+      appearance: none;
+      border: none;
+      background: #111827;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.1); }
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <h1>Spinning Square Demo</h1>
+    <div class="stage" id="stage">
+      <div class="square" aria-label="Decorative spinning square" role="img"></div>
+    </div>
+
+    <div class="controls">
+      <div class="row">
+        <label for="speed">Speed (seconds/rotation)</label>
+        <input id="speed" type="range" min="0.2" max="5" step="0.1" value="2" />
+        <span id="speedVal" aria-live="polite">2.0s</span>
+      </div>
+      <div class="row">
+        <label for="size">Size (px)</label>
+        <input id="size" type="range" min="60" max="220" step="2" value="140" />
+        <span id="sizeVal" aria-live="polite">140px</span>
+      </div>
+      <div class="row">
+        <label for="color">Color</label>
+        <input id="color" type="color" value="#0ea5e9" />
+        <span id="colorVal">#0EA5E9</span>
+      </div>
+      <div class="row">
+        <button id="toggle">Pause</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const stage = document.getElementById('stage');
+    const speed = document.getElementById('speed');
+    const size = document.getElementById('size');
+    const color = document.getElementById('color');
+
+    const speedVal = document.getElementById('speedVal');
+    const sizeVal = document.getElementById('sizeVal');
+    const colorVal = document.getElementById('colorVal');
+
+    const toggleBtn = document.getElementById('toggle');
+
+    function setSpeed(val) {
+      root.style.setProperty('--speed', val + 's');
+      speedVal.textContent = Number(val).toFixed(1) + 's';
+    }
+    function setSize(val) {
+      root.style.setProperty('--size', val + 'px');
+      sizeVal.textContent = val + 'px';
+    }
+    function setColor(val) {
+      root.style.setProperty('--bg', val);
+      colorVal.textContent = val.toUpperCase();
+    }
+
+    speed.addEventListener('input', e => setSpeed(e.target.value));
+    size.addEventListener('input', e => setSize(e.target.value));
+    color.addEventListener('input', e => setColor(e.target.value));
+
+    toggleBtn.addEventListener('click', () => {
+      stage.classList.toggle('paused');
+      toggleBtn.textContent = stage.classList.contains('paused') ? 'Resume' : 'Pause';
+    });
+  </script>
+</body>
+</html>
