@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Give the Cat a Pill 😼💊</title>
+  <style>
+    :root{
+      --game-max-w: 700px;
+      --cat-size: 140px;   /* adjusts with screen */
+      --pill-w: 64px;
+      --pill-h: 28px;
+      --bg1: #f7fbff;
+      --bg2: #e9f3ff;
+      --ink: #0b2948;
+      --accent: #5d9cff;
+      --good: #1ca37b;
+      --bad: #ff5a5f;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 500px at 50% -10%, var(--bg2), var(--bg1));
+    }
+    .wrap {
+      max-width: var(--game-max-w);
+      margin: 0 auto;
+      padding: 16px;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    p { margin: 0.35rem 0; }
+    .hud {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .statline {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      font-weight: 600;
+    }
+    .pill-btn, .reset-btn {
+      appearance: none;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 2px 0 rgba(0,0,0,.15);
+      cursor: pointer;
+    }
+    .reset-btn { background: #8a56ff; }
+    .pill-btn:active, .reset-btn:active { transform: translateY(1px); }
+
+    /* Game area */
+    #game {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      max-width: var(--game-max-w);
+      background:
+        linear-gradient(#cde6ff 0 46%, #a7d2ff 46% 47%, #b6e6b1 47%) ;
+      border-radius: 16px;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none; /* for smooth pointer events */
+      box-shadow: 0 10px 30px rgba(13,41,72,.12);
+    }
+
+    /* Timer bar */
+    .timer {
+      position: absolute;
+      left: 12px; right: 12px; top: 12px;
+      height: 10px;
+      background: #fff8;
+      border-radius: 999px;
+      overflow: hidden;
+      backdrop-filter: blur(2px);
+    }
+    .timer > .fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--good), #ffd166, var(--bad));
+      transform-origin: left center;
+      transition: width .15s linear;
+    }
+
+    /* Cat (pure CSS) */
+    #cat {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      width: clamp(110px, 20vmin, var(--cat-size));
+      aspect-ratio: 1/1;
+      transform: translateX(-50%);
+    }
+    .cat-body {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(90% 90% at 30% 25%, #ffd089, #f1a15d);
+      border: 4px solid #00000010;
+    }
+    .ear {
+      position: absolute; width: 34%; aspect-ratio: 1/1;
+      background: linear-gradient(#f1a15d, #e08a48);
+      clip-path: polygon(50% 0, 0 100%, 100% 100%);
+      top: -10%; transform-origin: bottom center;
+      border: 3px solid #00000010;
+      border-bottom: 0;
+      border-radius: 6px;
+    }
+    .ear.left { left: 8%; transform: rotate(-8deg); }
+    .ear.right { right: 8%; transform: rotate(8deg) scaleX(-1); }
+    .eye {
+      position: absolute; width: 16%; aspect-ratio: 1/1;
+      background: #1b2330;
+      border-radius: 50%;
+      top: 34%;
+      box-shadow: inset -2px -3px 0 rgba(255,255,255,.25);
+    }
+    .eye.left { left: 28%; }
+    .eye.right { right: 28%; }
+    .nose {
+      position: absolute; width: 10%; height: 9%;
+      background: #e66b6b; border-radius: 40% 40% 60% 60%;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      box-shadow: 0 1px 0 rgba(0,0,0,.15);
+    }
+    #mouth {
+      position: absolute; width: 26%; height: 8%;
+      left: 50%; top: 63%; transform: translateX(-50%);
+      background: #2b1e1e;
+      border-radius: 999px;
+      transition: transform .15s, height .15s, opacity .15s;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,.25);
+    }
+    #mouth.open {
+      height: 22%;
+      transform: translateX(-50%) translateY(4%);
+    }
+    .whisker {
+      position: absolute; height: 2px; background: #2f2f2f; width: 20%;
+      top: 54%;
+    }
+    .whisker.wl1 { left: 3%; transform: rotate(-8deg); }
+    .whisker.wl2 { left: 3%; top: 58%; transform: rotate(8deg); }
+    .whisker.wr1 { right: 3%; transform: rotate(8deg); }
+    .whisker.wr2 { right: 3%; top: 58%; transform: rotate(-8deg); }
+
+    /* Pill */
+    #pill {
+      position: absolute;
+      width: clamp(46px, 10vmin, var(--pill-w));
+      height: clamp(20px, 5vmin, var(--pill-h));
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, #ff4b5c 0 50%, #ffffff 50% 100%);
+      border: 2px solid #00000015;
+      box-shadow: 0 8px 16px rgba(0,0,0,.18);
+      left: 12px; bottom: 12px;
+      display: grid; place-items: center;
+      font-weight: 800;
+      color: #2b2b2b;
+      letter-spacing: .02em;
+      touch-action: none;
+      cursor: grab;
+      outline: none;
+    }
+    #pill:active { cursor: grabbing; }
+    #pill::after {
+      content: "💊";
+      font-size: 1.1rem;
+      opacity: .9;
+      transform: translateY(-1px);
+      pointer-events: none;
+    }
+
+    /* Messages */
+    .toast {
+      position: absolute; left: 50%; top: 14%;
+      transform: translate(-50%, -50%) scale(1);
+      background: #0009; color: #fff;
+      padding: 10px 14px; border-radius: 999px;
+      font-weight: 700; font-size: 0.95rem;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s;
+      backdrop-filter: blur(3px);
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1.03); }
+    .center-note {
+      text-align: center; font-size: .95rem; opacity: .85; margin: 8px 0 14px;
+    }
+
+    /* Accessibility focus */
+    #pill:focus-visible, .pill-btn:focus-visible, .reset-btn:focus-visible {
+      outline: 3px solid #1113; outline-offset: 2px;
+    }
+
+    /* Small screens tweaks */
+    @media (max-width: 420px) {
+      h1 { font-size: 1.05rem; }
+      .center-note { font-size: .9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Give the Cat a Pill 😼💊</h1>
+    <p class="center-note">Drag the pill into the cat’s mouth while it’s open. Works with touch or mouse. Keyboard: arrow keys move the pill; <kbd>Space</kbd> to “drop”.</p>
+
+    <div class="hud" aria-live="polite">
+      <div class="statline">
+        <span>Level: <span id="level">1</span></span>
+        <span>Score: <span id="score">0</span></span>
+        <span>Time: <span id="timeText">20.0</span>s</span>
+      </div>
+      <div>
+        <button class="reset-btn" id="resetBtn" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div id="game" role="application" aria-label="Give the cat a pill game area">
+      <div class="timer" aria-hidden="true"><div class="fill" id="timeFill"></div></div>
+
+      <div id="cat" aria-label="Cat">
+        <div class="ear left"></div>
+        <div class="ear right"></div>
+        <div class="cat-body"></div>
+        <div class="eye left"></div>
+        <div class="eye right"></div>
+        <div class="nose"></div>
+        <div id="mouth" class="" aria-label="Cat mouth"></div>
+        <div class="whisker wl1"></div>
+        <div class="whisker wl2"></div>
+        <div class="whisker wr1"></div>
+        <div class="whisker wr2"></div>
+      </div>
+
+      <div id="pill" tabindex="0" role="button" aria-label="Pill"> </div>
+
+      <div id="toast" class="toast" aria-live="assertive">Nice! Pill delivered. 😺</div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button id="snapBtn" class="pill-btn" type="button" title="If dragging is hard, tap this, then tap the mouth when open.">Tap-to-give mode</button>
+      <button id="howBtn" class="pill-btn" type="button">How to play</button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const game = document.getElementById('game');
+      const cat = document.getElementById('cat');
+      const mouth = document.getElementById('mouth');
+      const pill = document.getElementById('pill');
+      const toast = document.getElementById('toast');
+
+      const levelEl = document.getElementById('level');
+      const scoreEl = document.getElementById('score');
+      const timeFill = document.getElementById('timeFill');
+      const timeText = document.getElementById('timeText');
+
+      const resetBtn = document.getElementById('resetBtn');
+      const snapBtn = document.getElementById('snapBtn');
+      const howBtn = document.getElementById('howBtn');
+
+      // Game state
+      let running = true;
+      let level = 1;
+      let score = 0;
+      let timeLeft = 20;
+      let totalTime = 20;
+
+      // Cat movement
+      let catDX = 1.2; // pixels/frame-ish; scaled by difficulty
+      let mouthOpen = false;
+      let mouthTimer = 0; // ms left
+      let lastT = performance.now();
+
+      // Dragging
+      let dragging = false;
+      let dragOffset = {x:0, y:0};
+
+      // Tap-to-give mode
+      let tapToGiveArmed = false;
+
+      // Utility
+      function clamp(v, min, max){ return Math.min(max, Math.max(min, v)); }
+
+      function resizePillHome(){
+        // Put pill bottom-left initially
+        const r = game.getBoundingClientRect();
+        const p = pill.getBoundingClientRect();
+        const x = 12;
+        const y = r.height - p.height - 12;
+        setPillPos(x, y);
+      }
+
+      function setPillPos(x, y){
+        pill.style.left = `${x}px`;
+        pill.style.top = `${y}px`;
+      }
+
+      function getPillPos(){
+        const r = pill.getBoundingClientRect();
+        const g = game.getBoundingClientRect();
+        return { x: r.left - g.left, y: r.top - g.top, w: r.width, h: r.height };
+      }
+
+      function getMouthRect(){
+        // Compute mouth rect relative to game
+        const mr = mouth.getBoundingClientRect();
+        const gr = game.getBoundingClientRect();
+        return { x: mr.left - gr.left, y: mr.top - gr.top, w: mr.width, h: mr.height };
+      }
+
+      function rectsOverlap(a, b){
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      }
+
+      function showToast(msg, color){
+        toast.textContent = msg;
+        toast.style.background = color || '#0009';
+        toast.classList.add('show');
+        setTimeout(()=>toast.classList.remove('show'), 900);
+      }
+
+      function randomRange(min,max){ return Math.random()*(max-min)+min; }
+
+      function resetState(){
+        running = true;
+        level = 1; score = 0;
+        totalTime = 20;
+        timeLeft = totalTime;
+        catDX = 1.2;
+        levelEl.textContent = level;
+        scoreEl.textContent = score;
+        timeText.textContent = timeLeft.toFixed(1);
+        timeFill.style.width = '100%';
+        tapToGiveArmed = false;
+        snapBtn.textContent = 'Tap-to-give mode';
+        // place cat center
+        cat.style.left = '50%';
+        cat.style.transform = 'translateX(-50%)';
+        // pill home
+        resizePillHome();
+        // reset mouth cycle soon
+        mouthTimer = 0;
+      }
+
+      function nextLevel(){
+        level++;
+        score += 100 * level;
+        levelEl.textContent = level;
+        scoreEl.textContent = score;
+        // Increase difficulty slightly
+        catDX *= 1.18;
+        totalTime = Math.max(10, totalTime - 1.2); // shorter timer
+        timeLeft = totalTime;
+        showToast(`Level ${level}! 🐾`, '#2672ffcc');
+        // Return pill home
+        resizePillHome();
+      }
+
+      function deliverIfOverlap(){
+        if (!mouthOpen) return false;
+        const pillR = getPillPos();
+        const mouthR = getMouthRect();
+        if (rectsOverlap(pillR, mouthR)) {
+          // success
+          mouth.classList.remove('open'); mouthOpen = false;
+          showToast('Nice! Pill delivered. 😺', '#1ca37bcc');
+          score += Math.round(50 + timeLeft * 5);
+          scoreEl.textContent = score;
+          nextLevel();
+          return true;
+        }
+        return false;
+      }
+
+      // Pointer events (touch + mouse unified)
+      pill.addEventListener('pointerdown', (e)=>{
+        e.preventDefault();
+        pill.setPointerCapture(e.pointerId);
+        dragging = true;
+        const pillRect = pill.getBoundingClientRect();
+        dragOffset.x = e.clientX - pillRect.left;
+        dragOffset.y = e.clientY - pillRect.top;
+      });
+      window.addEventListener('pointermove', (e)=>{
+        if (!dragging) return;
+        const g = game.getBoundingClientRect();
+        let x = e.clientX - g.left - dragOffset.x;
+        let y = e.clientY - g.top - dragOffset.y;
+        // clamp into bounds
+        const pr = pill.getBoundingClientRect();
+        x = clamp(x, 0, g.width - pr.width);
+        y = clamp(y, 0, g.height - pr.height);
+        setPillPos(x, y);
+        // Live check while dragging
+        deliverIfOverlap();
+      });
+      window.addEventListener('pointerup', ()=>{
+        dragging = false;
+        // On release, check overlap one more time
+        deliverIfOverlap();
+      });
+
+      // Tap-to-give: arm, then tap on mouth when open
+      snapBtn.addEventListener('click', ()=>{
+        tapToGiveArmed = !tapToGiveArmed;
+        snapBtn.textContent = tapToGiveArmed ? 'Tap the mouth now (when open)' : 'Tap-to-give mode';
+        showToast(tapToGiveArmed ? 'Armed: tap the mouth when it opens.' : 'Tap-to-give off.');
+      });
+      mouth.addEventListener('pointerdown', ()=>{
+        if (tapToGiveArmed && mouthOpen) {
+          tapToGiveArmed = false;
+          snapBtn.textContent = 'Tap-to-give mode';
+          // Snap the pill onto mouth center
+          const mr = getMouthRect();
+          setPillPos(mr.x + mr.w/2 - getPillPos().w/2, mr.y + mr.h/2 - getPillPos().h/2);
+          deliverIfOverlap();
+        }
+      });
+
+      // Keyboard controls (accessibility)
+      pill.addEventListener('keydown', (e)=>{
+        const step = 14;
+        const pos = getPillPos();
+        const g = game.getBoundingClientRect();
+        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+        if (e.key === 'ArrowLeft') setPillPos(clamp(pos.x - step, 0, g.width - pos.w), pos.y);
+        if (e.key === 'ArrowRight') setPillPos(clamp(pos.x + step, 0, g.width - pos.w), pos.y);
+        if (e.key === 'ArrowUp') setPillPos(pos.x, clamp(pos.y - step, 0, g.height - pos.h));
+        if (e.key === 'ArrowDown') setPillPos(pos.x, clamp(pos.y + step, 0, g.height - pos.h));
+        if (e.key === ' ') deliverIfOverlap();
+      });
+
+      // Help
+      howBtn.addEventListener('click', ()=>{
+        showToast('Drag pill → mouth while open. Time is ticking!');
+      });
+
+      // Reset
+      resetBtn.addEventListener('click', resetState);
+      window.addEventListener('resize', resizePillHome);
+
+      // Animation loop
+      function tick(now){
+        const dt = Math.min(50, now - lastT); // ms
+        lastT = now;
+
+        if (running){
+          // Move cat horizontally (bounce)
+          const gr = game.getBoundingClientRect();
+          const cr = cat.getBoundingClientRect();
+          let left = cat.offsetLeft; // relative to #game (including translateX(-50%), so use computed)
+          // We positioned cat by left:50% initially; to keep it simple, switch to px positioning on first frame:
+          if (getComputedStyle(cat).left.endsWith('%')) {
+            const px = gr.width*0.5 - cr.width*0.5;
+            cat.style.left = px + 'px';
+            cat.style.transform = 'none';
+          }
+          left = parseFloat(getComputedStyle(cat).left) || 0;
+
+          let newLeft = left + catDX * (dt/8); // speed scale
+          const minL = 8;
+          const maxL = gr.width - cr.width - 8;
+          if (newLeft < minL || newLeft > maxL){
+            catDX *= -1;
+            newLeft = clamp(newLeft, minL, maxL);
+          }
+          cat.style.left = newLeft + 'px';
+
+          // Mouth open/close cycle
+          mouthTimer -= dt;
+          if (mouthTimer <= 0){
+            mouthOpen = !mouthOpen;
+            mouth.classList.toggle('open', mouthOpen);
+            // next switch time depends on state and level
+            const baseOpen = clamp(1000 - level*60, 420, 1000);
+            const baseClosed = clamp(900 - level*50, 300, 900);
+            mouthTimer = (mouthOpen ? baseOpen : baseClosed) + randomRange(-120, 120);
+          }
+
+          // Time
+          timeLeft -= dt/1000;
+          if (timeLeft <= 0){
+            running = false;
+            timeLeft = 0;
+            timeText.textContent = timeLeft.toFixed(1);
+            timeFill.style.width = '0%';
+            showToast('Time up! The cat refused. 🙀', '#ff5a5fcc');
+          } else {
+            timeText.textContent = timeLeft.toFixed(1);
+            timeFill.style.width = `${(timeLeft/totalTime)*100}%`;
+          }
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      // Start
+      resetState();
+      requestAnimationFrame((t)=>{ lastT = t; tick(t); });
+
+      // First focus hint for keyboard users
+      setTimeout(()=> pill.focus({preventScroll:true}), 500);
+    })();
+  </script>
+</body>
+</html>
