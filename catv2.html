@@ -3,81 +3,110 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cat Pill Game — v3 (Mouth Animation)</title>
+<title>Cat Pill Game — v4 (Drag to Emoji Cat)</title>
 <style>
-  :root {
-    --bg: #0f172a;
-    --panel: #111827;
-    --accent: #22d3ee;
-    --good: #34d399;
-    --warn: #fbbf24;
-    --bad: #f87171;
-    --text: #e5e7eb;
+  :root{
+    --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --accent:#22d3ee;
+    --good:#34d399; --warn:#fbbf24; --bad:#f87171;
   }
-  body {
-    margin: 0;
-    background: radial-gradient(1200px 800px at 50% -200px, #1f2937 0%, var(--bg) 45%);
-    color: var(--text);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
-    display: grid; place-items: center; min-height: 100svh;
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100svh; display:grid; place-items:center;
+    color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;
+    background: radial-gradient(1200px 800px at 50% -200px,#1f2937 0%,var(--bg) 45%);
   }
-  .wrap { width: min(960px, 96vw); }
-  header { display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin:1rem 0 .5rem; }
-  h1 { font-size: clamp(1rem, 2.5vw, 1.2rem); margin:0; font-weight:600; opacity:.9; }
-  .hud { display:flex; align-items:center; gap:.75rem; font-weight:600; }
-  .badge {
-    background: linear-gradient(180deg, #1f2937, #0b1220);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 10px; padding:.35rem .6rem; display:inline-flex; gap:.4rem;
-    box-shadow: 0 8px 24px rgba(0,0,0,.2) inset, 0 4px 12px rgba(0,0,0,.25);
-    align-items:center;
+  .wrap{width:min(960px,96vw);}
+  header{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:1rem 0 .5rem;}
+  h1{margin:0;font-size:clamp(1rem,2.5vw,1.2rem);opacity:.9}
+  .hud{display:flex;align-items:center;gap:.75rem;font-weight:600}
+  .badge{
+    background:linear-gradient(180deg,#16223a,#0b1220);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:10px;padding:.35rem .6rem;display:inline-flex;gap:.4rem;align-items:center;
+    box-shadow:inset 0 8px 24px rgba(0,0,0,.2),0 4px 12px rgba(0,0,0,.25);
   }
-  .hearts { letter-spacing: 2px; font-size:1.1rem; }
-  .score { color: var(--accent); }
-  .stage {
-    position:relative; background: linear-gradient(180deg, rgba(34,211,238,.06), rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.08); border-radius:16px; overflow:hidden;
-    box-shadow: 0 30px 80px rgba(0,0,0,.35), inset 0 6px 24px rgba(255,255,255,.03);
+  .score{color:var(--accent)}
+  .hearts{letter-spacing:2px}
+
+  .stage{
+    position:relative; border-radius:16px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg,rgba(34,211,238,.06), rgba(255,255,255,.02));
+    box-shadow:0 30px 80px rgba(0,0,0,.35), inset 0 6px 24px rgba(255,255,255,.03);
+    width:100%; height:min(62vh,560px); min-height:420px;
     touch-action:none; user-select:none;
   }
-  canvas { display:block; width:100%; height:auto; }
-  .overlay {
+  /* Play area guides */
+  .top-zone{
+    position:absolute; inset:0 0 36% 0; /* top ~64% */
+    background: repeating-linear-gradient(180deg, transparent 0px, transparent 28px, rgba(255,255,255,.04) 28px, rgba(255,255,255,.04) 56px);
+    pointer-events:none;
+  }
+
+  /* Cat (emoji) */
+  .cat{
+    position:absolute; left:50%; transform:translateX(-50%);
+    bottom:18px; font-size:clamp(56px,10vw,96px); line-height:1;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,.3));
+    transition: transform .12s ease;
+    will-change: transform;
+  }
+  .cat.hungry{ transform:translateX(-50%) scale(1); }
+  .cat.bite{   transform:translateX(-50%) scale(1.1); } /* quick “mouth open” pop */
+
+  /* Pill (draggable) */
+  .pill{
+    position:absolute; font-size:clamp(34px,7.5vw,56px); line-height:1; cursor:grab;
+    touch-action:none; user-select:none;
+    transition: transform .05s linear;
+    will-change: transform, left, top;
+  }
+  .pill:active{ cursor:grabbing; }
+
+  /* Overlay */
+  .overlay{
     position:absolute; inset:0; display:grid; place-items:center;
-    background: rgba(0,0,0,.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    background:rgba(0,0,0,.45); backdrop-filter: blur(4px);
   }
-  .card {
-    text-align:center; background: linear-gradient(180deg, #0b1220, #0a0f1a);
-    border:1px solid rgba(255,255,255,.08); padding:1rem 1.2rem; border-radius:14px;
-    box-shadow: 0 18px 60px rgba(0,0,0,.45); width:min(420px, 90%);
+  .card{
+    text-align:center; width:min(420px,90%);
+    background:linear-gradient(180deg,#0b1220,#0a0f1a);
+    border:1px solid rgba(255,255,255,.1);
+    padding:1rem 1.2rem; border-radius:14px;
+    box-shadow:0 18px 60px rgba(0,0,0,.45);
   }
-  .card h2 { margin:0 0 .25rem; font-size:1.1rem; }
-  .card p { margin:0 0 .75rem; opacity:.8; font-size:.95rem; }
-  .btn { background: linear-gradient(180deg, #22d3ee, #14b8a6); color:#06121a; border:none; border-radius:10px; padding:.6rem .9rem; font-weight:700; cursor:pointer; width:100%; }
-  .controls { font-size:.85rem; opacity:.8; margin-top:.5rem; line-height:1.2rem; }
-  footer { opacity:.6; font-size:.85rem; margin:.6rem 0 1.2rem; text-align:center; }
+  .card h2{margin:.1rem 0 .4rem;font-size:1.1rem}
+  .card p{margin:0 0 .8rem; opacity:.85}
+  .btn{
+    width:100%; border:none; border-radius:10px; padding:.65rem .9rem; font-weight:800; cursor:pointer;
+    color:#06121a; background:linear-gradient(180deg,#22d3ee,#14b8a6);
+  }
+  .controls{font-size:.9rem; opacity:.8; margin-top:.6rem; line-height:1.25rem}
+  footer{opacity:.6; font-size:.85rem; margin:.6rem 0 1.2rem; text-align:center}
 </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>🐱 Cat Pill Game — v3</h1>
+      <h1>🐱 Cat Pill Game — v4</h1>
       <div class="hud">
-        <div class="badge"><span>Score:</span> <span id="score" class="score">0</span></div>
-        <div class="badge"><span>Lives:</span> <span id="hearts" class="hearts">❤️❤️❤️</span></div>
+        <div class="badge">Score: <span id="score" class="score">0</span></div>
+        <div class="badge">Lives: <span id="hearts" class="hearts">❤️❤️❤️</span></div>
       </div>
     </header>
 
-    <div class="stage" id="stage">
-      <canvas id="game" width="960" height="540" aria-label="Cat Pill Game"></canvas>
+    <div class="stage" id="stage" aria-label="Drag the pill to the cat">
+      <div class="top-zone" aria-hidden="true"></div>
+      <div id="cat" class="cat hungry" aria-label="Cat">🐱</div>
 
       <div class="overlay" id="overlay">
         <div class="card">
-          <h2 id="title">Feed the Cat its Pill!</h2>
-          <p id="subtitle">Catch the 💊 with the cat 🐱. Miss three pills and it's game over.</p>
+          <h2 id="title">Drag the 💊 to the 🐱</h2>
+          <p id="subtitle">Feed the cat to score points. Dropping the pill elsewhere costs a life. 3 lives total.</p>
           <button class="btn" id="startBtn">Tap / Click to Start</button>
           <div class="controls">
-            Desktop: ← → or A / D · Mouse drag<br/>
-            Mobile: touch & drag anywhere
+            Desktop: click & drag the pill<br/>
+            Mobile: touch & drag the pill
           </div>
         </div>
       </div>
@@ -88,9 +117,8 @@
 
 <script>
 (() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
   const stage = document.getElementById('stage');
+  const catEl = document.getElementById('cat');
   const overlay = document.getElementById('overlay');
   const startBtn = document.getElementById('startBtn');
   const scoreEl = document.getElementById('score');
@@ -98,355 +126,182 @@
   const titleEl = document.getElementById('title');
   const subtitleEl = document.getElementById('subtitle');
 
-  function fitCanvas() {
-    const w = stage.clientWidth;
-    const h = Math.round(Math.min(w * 9/16, Math.max(420, window.innerHeight * 0.58)));
-    canvas.style.height = h + 'px';
+  // Sound
+  const meow = new Audio('meow.mp3');
+  meow.preload = 'auto'; meow.volume = 0.85;
+
+  // optional tiny buzz for a miss
+  let audioCtx;
+  function buzz(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==='suspended') audioCtx.resume();
+      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+      o.type='square'; o.frequency.value=220;
+      g.gain.value=0.0001;
+      g.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.14);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.16);
+    }catch{}
   }
-  window.addEventListener('resize', fitCanvas, { passive: true });
-  fitCanvas();
 
   const state = {
-    running: false,
-    score: 0,
-    lives: 3,
-    speed: 180,
-    spawnMin: 0.7,
-    spawnMax: 1.6,
-    lastTime: 0,
-    nextSpawn: 0,
-    pills: [],
-    keys: { left: false, right: false },
-    t: 0,                 // global time
+    running:false, score:0, lives:3,
+    pillEl:null, dragging:false,
+    offsetX:0, offsetY:0,
   };
 
-  const cat = {
-    x: canvas.width / 2,
-    y: canvas.height - 60,
-    w: 120,
-    h: 26,
-    speed: 520,
-    mouth: 0,            // 0 = closed, 1 = fully open
-    mouthKick: 0,        // time remaining for a “big bite”
-    blink: 0,            // eye blink (0 open, 1 closed)
-    blinkTimer: 1.6,     // time to next blink
-  };
-
-  const meow = new Audio('meow.mp3');
-  meow.preload = 'auto';
-  meow.volume = 0.8;
-
-  let audioCtx;
-  function bump() {
-    try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'triangle';
-      o.frequency.value = 180;
-      g.gain.setValueAtTime(0.001, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
-      o.connect(g).connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + 0.2);
-    } catch {}
-  }
-
-  function resetGame() {
-    state.score = 0;
-    state.lives = 3;
-    state.speed = 180;
-    state.pills = [];
-    state.lastTime = 0;
-    state.nextSpawn = 0.6;
-    state.t = 0;
-    cat.x = canvas.width / 2;
-    cat.mouth = 0;
-    cat.mouthKick = 0;
-    cat.blink = 0;
-    cat.blinkTimer = 0.6 + Math.random() * 1.6;
-    updateHUD();
-  }
-
-  function updateHUD() {
+  function updateHUD(){
     scoreEl.textContent = state.score;
-    heartsEl.textContent = '❤️'.repeat(state.lives) + '🖤'.repeat(3 - state.lives);
+    heartsEl.textContent = '❤️'.repeat(state.lives) + '🖤'.repeat(3-state.lives);
   }
 
-  function spawnPill() {
-    const radius = 14;
-    const x = Math.random() * (canvas.width - radius * 2) + radius;
-    state.pills.push({
-      x, y: -20, r: radius,
-      vy: state.speed + Math.random() * 80,
-      spin: (Math.random() * 2 - 1) * 2,
-      a: Math.random() * Math.PI * 2,
-    });
+  function resetGame(){
+    state.score = 0; state.lives = 3; updateHUD();
+    removePill(); createPill();
+    catEl.classList.remove('bite'); catEl.classList.add('hungry');
   }
 
-  function rectCircleCollide(rx, ry, rw, rh, cx, cy, cr) {
-    const testX = Math.max(rx, Math.min(cx, rx + rw));
-    const testY = Math.max(ry, Math.min(cy, ry + rh));
-    const dx = cx - testX;
-    const dy = cy - testY;
-    return (dx*dx + dy*dy) <= cr*cr;
-  }
-
-  // Input
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') state.keys.left = true;
-    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') state.keys.right = true;
-  });
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') state.keys.left = false;
-    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') state.keys.right = false;
-  });
-
-  function pointerMove(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const x = (clientX - rect.left) * (canvas.width / rect.width);
-    cat.x = Math.max(cat.w/2, Math.min(canvas.width - cat.w/2, x));
-    e.preventDefault();
-  }
-  stage.addEventListener('pointerdown', pointerMove, { passive: false });
-  stage.addEventListener('pointermove', pointerMove, { passive: false });
-
-  function start() {
+  function start(){
     overlay.style.display = 'none';
     state.running = true;
     resetGame();
-    state.lastTime = performance.now();
-    requestAnimationFrame(loop);
   }
 
-  function gameOver() {
+  function gameOver(){
     state.running = false;
+    removePill();
     titleEl.textContent = 'Game Over 😿';
     subtitleEl.textContent = `Final score: ${state.score}`;
     startBtn.textContent = 'Play Again';
     overlay.style.display = 'grid';
   }
 
-  function loop(now) {
-    if (!state.running) return;
-    const dt = Math.min(0.033, (now - state.lastTime) / 1000);
-    state.lastTime = now;
-    state.t += dt;
+  function createPill(){
+    const pill = document.createElement('div');
+    pill.className = 'pill';
+    pill.textContent = '💊';
+    stage.appendChild(pill);
 
-    // Move cat with keys
-    if (state.keys.left)  cat.x -= cat.speed * dt;
-    if (state.keys.right) cat.x += cat.speed * dt;
-    cat.x = Math.max(cat.w/2, Math.min(canvas.width - cat.w/2, cat.x));
+    // place the pill somewhere in the top zone
+    const rect = stage.getBoundingClientRect();
+    const topH = rect.height * 0.64;
+    const left = Math.random() * (rect.width - 64) + 16;
+    const top  = Math.random() * (topH - 80) + 16;
+    pill.style.left = left + 'px';
+    pill.style.top  = top  + 'px';
 
-    // Spawn pills
-    state.nextSpawn -= dt;
-    if (state.nextSpawn <= 0) {
-      spawnPill();
-      const next = state.spawnMin + Math.random() * (state.spawnMax - state.spawnMin);
-      state.nextSpawn = Math.max(0.45, next - Math.min(0.9, state.score * 0.01));
-    }
+    // store
+    state.pillEl = pill;
 
-    // Update pills
-    for (let i = state.pills.length - 1; i >= 0; i--) {
-      const p = state.pills[i];
-      p.y += p.vy * dt;
-      p.a += p.spin * dt;
-
-      // Catch?
-      if (rectCircleCollide(cat.x - cat.w/2, cat.y - cat.h/2, cat.w, cat.h, p.x, p.y, p.r)) {
-        state.pills.splice(i, 1);
-        state.score += 1;
-        updateHUD();
-
-        // Difficulty ramp
-        state.speed = Math.min(420, state.speed + 6);
-
-        // Play meow + trigger big mouth bite
-        try { meow.currentTime = 0; meow.play(); } catch {}
-        cat.mouth = 1;          // fully open immediately
-        cat.mouthKick = 0.22;   // time window to stay “very open”
-        continue;
-      }
-
-      // Missed
-      if (p.y - p.r > canvas.height) {
-        state.pills.splice(i, 1);
-        state.lives -= 1;
-        updateHUD();
-        bump();
-        if (state.lives <= 0) return gameOver();
-      }
-    }
-
-    // Animate cat face
-    // Blink logic (quick close then open)
-    cat.blinkTimer -= dt;
-    if (cat.blinkTimer <= 0) {
-      cat.blink = 1; // eyes closed
-      cat.blinkTimer = 0.1 + Math.random() * 0.08; // duration of blink phase
-      // After blink duration, schedule reopen
-      setTimeout(() => {
-        cat.blink = 0;
-        cat.blinkTimer = 1.2 + Math.random() * 2.0; // time to next blink
-      }, (cat.blinkTimer * 1000)|0);
-    }
-
-    // Mouth animation:
-    // If we recently caught a pill, keep mouth wide for a short kick, then ease closed.
-    if (cat.mouthKick > 0) {
-      cat.mouthKick -= dt;
-      cat.mouth = Math.max(cat.mouth, 0.9);
-    } else {
-      // Ease mouth toward a gentle idle chew: small sine wave between 0.05 and 0.15
-      const idle = 0.10 + 0.05 * Math.sin(state.t * 3.0);
-      cat.mouth += (idle - cat.mouth) * Math.min(1, dt * 8); // smooth
-    }
-    // Also close gradually if somehow above 1
-    cat.mouth = Math.max(0, Math.min(1, cat.mouth));
-
-    // -------- Render --------
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Background grid
-    ctx.save();
-    ctx.globalAlpha = 0.12;
-    ctx.strokeStyle = '#22d3ee';
-    ctx.lineWidth = 1;
-    const grid = 48;
-    for (let x = 0; x < canvas.width; x += grid) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += grid) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-    }
-    ctx.restore();
-
-    // Draw cat paddle + face (with animated mouth)
-    drawCat();
-
-    // Draw pills
-    for (const p of state.pills) {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.a);
-
-      const w = p.r * 2.2, h = p.r * 1.2;
-      const r = h / 2;
-
-      ctx.fillStyle = '#f87171'; // red half
-      roundRect(ctx, -w/2, -h/2, w/2, h, r); ctx.fill();
-
-      ctx.fillStyle = '#60a5fa'; // blue half
-      roundRect(ctx, 0, -h/2, w/2, h, r); ctx.fill();
-
-      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.85)';
-      roundRect(ctx, -w/2, -h/2, w, h, r); ctx.stroke();
-      ctx.restore();
-    }
-
-    requestAnimationFrame(loop);
+    // attach events
+    pill.addEventListener('pointerdown', startDrag, {passive:false});
   }
 
-  function drawCat() {
-    // Body/paddle
-    ctx.save();
-    ctx.fillStyle = 'rgba(52, 211, 153, 0.78)'; // emerald
-    roundRect(ctx, cat.x - cat.w/2, cat.y - cat.h/2, cat.w, cat.h, 12);
-    ctx.fill();
-
-    // Eyes (blink by scaling vertically)
-    const eyeY = cat.y - 4;
-    const eyeDx = 18;
-    const eyeR = 3;
-    ctx.fillStyle = '#06121a';
-    ctx.save();
-    // Left eye
-    ctx.translate(cat.x - eyeDx, eyeY);
-    ctx.scale(1, Math.max(0.12, 1 - cat.blink * 0.9));
-    circle(ctx, 0, 0, eyeR); ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    // Right eye
-    ctx.translate(cat.x + eyeDx, eyeY);
-    ctx.scale(1, Math.max(0.12, 1 - cat.blink * 0.9));
-    circle(ctx, 0, 0, eyeR); ctx.fill();
-    ctx.restore();
-
-    // Nose
-    ctx.fillStyle = '#0b1220';
-    circle(ctx, cat.x, cat.y + 2, 1.6); ctx.fill();
-
-    // MOUTH (animated)
-    // cat.mouth ∈ [0..1]. We draw an upper mouth line and a lower jaw arc that opens downward.
-    const mouthCenterX = cat.x;
-    const mouthCenterY = cat.y + 6;
-    const mouthWidth = 34;
-    const maxOpen = 16;             // max vertical opening
-    const open = maxOpen * cat.mouth;
-
-    // Upper lip (thin line)
-    ctx.strokeStyle = '#06121a';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(mouthCenterX - mouthWidth/2, mouthCenterY);
-    ctx.lineTo(mouthCenterX + mouthWidth/2, mouthCenterY);
-    ctx.stroke();
-
-    // Lower jaw — draw a semicircle-ish arc that goes down based on "open"
-    ctx.fillStyle = '#06121a';
-    ctx.beginPath();
-    // Use quadratic curve to form a “mouth pocket”
-    ctx.moveTo(mouthCenterX - mouthWidth/2, mouthCenterY);
-    ctx.quadraticCurveTo(
-      mouthCenterX, mouthCenterY + open,
-      mouthCenterX + mouthWidth/2, mouthCenterY
-    );
-    ctx.quadraticCurveTo(
-      mouthCenterX, mouthCenterY + Math.max(2, open * 0.55),
-      mouthCenterX - mouthWidth/2, mouthCenterY
-    );
-    ctx.closePath();
-    ctx.fill();
-
-    // Tongue (only visible when fairly open)
-    if (open > 6) {
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.ellipse(mouthCenterX, mouthCenterY + open * 0.55, 7, 3.2, 0, 0, Math.PI * 2);
-      ctx.fill();
+  function removePill(){
+    if(state.pillEl && state.pillEl.parentNode){
+      state.pillEl.remove();
+      state.pillEl = null;
     }
-
-    ctx.restore();
   }
 
-  function roundRect(ctx, x, y, w, h, r) {
-    const rr = Math.min(r, w/2, h/2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.lineTo(x + w - rr, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
-    ctx.lineTo(x + w, y + h - rr);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
-    ctx.lineTo(x + rr, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
-    ctx.lineTo(x, y + rr);
-    ctx.quadraticCurveTo(x, y, x + rr, y);
-    ctx.closePath();
+  function startDrag(e){
+    if(!state.running) return;
+    e.preventDefault();
+    const pill = state.pillEl;
+    if(!pill) return;
+    pill.setPointerCapture(e.pointerId);
+    state.dragging = true;
+
+    const pillRect = pill.getBoundingClientRect();
+    state.offsetX = e.clientX - pillRect.left;
+    state.offsetY = e.clientY - pillRect.top;
+
+    document.addEventListener('pointermove', onDrag, {passive:false});
+    document.addEventListener('pointerup', endDrag, {once:true, passive:false});
   }
 
-  function circle(ctx, x, y, r) {
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.closePath();
+  function onDrag(e){
+    if(!state.dragging || !state.pillEl) return;
+    e.preventDefault();
+    const rect = stage.getBoundingClientRect();
+
+    let x = e.clientX - rect.left - state.offsetX;
+    let y = e.clientY - rect.top  - state.offsetY;
+
+    // constrain inside stage
+    x = Math.max(0, Math.min(rect.width - 56, x));
+    y = Math.max(0, Math.min(rect.height - 56, y));
+
+    state.pillEl.style.left = x + 'px';
+    state.pillEl.style.top  = y + 'px';
   }
 
+  function endDrag(e){
+    if(!state.dragging) return;
+    state.dragging = false;
+    document.removeEventListener('pointermove', onDrag);
+
+    if(!state.pillEl) return;
+
+    // Check drop overlap with the cat
+    const catR = catEl.getBoundingClientRect();
+    const pillR = state.pillEl.getBoundingClientRect();
+
+    const overlap = !(pillR.right < catR.left || pillR.left > catR.right || pillR.bottom < catR.top || pillR.top > catR.bottom);
+
+    if(overlap){
+      // success
+      try{ meow.currentTime = 0; meow.play(); }catch{}
+      catEl.classList.remove('hungry');
+      catEl.classList.add('bite');
+      // quick bite animation reset
+      setTimeout(()=>{ catEl.classList.remove('bite'); catEl.classList.add('hungry'); }, 160);
+
+      state.score += 1; updateHUD();
+      // spawn a new pill
+      removePill(); createPill();
+    }else{
+      // miss
+      buzz();
+      state.lives -= 1; updateHUD();
+      if(state.lives <= 0){ gameOver(); return; }
+
+      // reposition the same pill back to the top zone to try again
+      snapPillBackToTop();
+    }
+  }
+
+  function snapPillBackToTop(){
+    if(!state.pillEl) return;
+    const rect = stage.getBoundingClientRect();
+    const topH = rect.height * 0.64;
+    const left = Math.random() * (rect.width - 64) + 16;
+    const top  = Math.random() * (topH - 80) + 16;
+    state.pillEl.style.left = left + 'px';
+    state.pillEl.style.top  = top  + 'px';
+  }
+
+  // Start button: also helps unlock audio on iOS
   startBtn.addEventListener('click', () => {
-    try { meow.play().then(() => { meow.pause(); meow.currentTime = 0; }).catch(()=>{}); } catch {}
+    try { meow.play().then(()=>{ meow.pause(); meow.currentTime = 0; }).catch(()=>{}); } catch {}
     start();
   });
 
-  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  // Resize safety: keep pill in bounds if viewport changes
+  window.addEventListener('resize', () => {
+    if(!state.pillEl) return;
+    const rect = stage.getBoundingClientRect();
+    const pillR = state.pillEl.getBoundingClientRect();
+    let x = pillR.left - rect.left;
+    let y = pillR.top - rect.top;
+    x = Math.max(0, Math.min(rect.width - 56, x));
+    y = Math.max(0, Math.min(rect.height - 56, y));
+    state.pillEl.style.left = x + 'px';
+    state.pillEl.style.top  = y + 'px';
+  }, {passive:true});
+
 })();
 </script>
 </body>
