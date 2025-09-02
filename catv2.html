@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cat Pill Game — v4 (Drag to Emoji Cat)</title>
+<title>Cat Pill Game — v6 (Dash + Fake-out)</title>
 <style>
   :root{
     --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --accent:#22d3ee;
@@ -18,7 +18,7 @@
   .wrap{width:min(960px,96vw);}
   header{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:1rem 0 .5rem;}
   h1{margin:0;font-size:clamp(1rem,2.5vw,1.2rem);opacity:.9}
-  .hud{display:flex;align-items:center;gap:.75rem;font-weight:600}
+  .hud{display:flex;align-items:center;gap:.75rem;font-weight:600;flex-wrap:wrap}
   .badge{
     background:linear-gradient(180deg,#16223a,#0b1220);
     border:1px solid rgba(255,255,255,.1);
@@ -27,6 +27,7 @@
   }
   .score{color:var(--accent)}
   .hearts{letter-spacing:2px}
+  .level{color:var(--warn)}
 
   .stage{
     position:relative; border-radius:16px; overflow:hidden;
@@ -36,23 +37,30 @@
     width:100%; height:min(62vh,560px); min-height:420px;
     touch-action:none; user-select:none;
   }
-  /* Play area guides */
   .top-zone{
-    position:absolute; inset:0 0 36% 0; /* top ~64% */
+    position:absolute; inset:0 0 36% 0;
     background: repeating-linear-gradient(180deg, transparent 0px, transparent 28px, rgba(255,255,255,.04) 28px, rgba(255,255,255,.04) 56px);
     pointer-events:none;
   }
 
   /* Cat (emoji) */
   .cat{
-    position:absolute; left:50%; transform:translateX(-50%);
-    bottom:18px; font-size:clamp(56px,10vw,96px); line-height:1;
+    position:absolute; bottom:18px;
+    font-size:clamp(56px,10vw,96px); line-height:1;
     filter: drop-shadow(0 10px 20px rgba(0,0,0,.3));
     transition: transform .12s ease;
-    will-change: transform;
+    will-change: transform, left;
   }
-  .cat.hungry{ transform:translateX(-50%) scale(1); }
-  .cat.bite{   transform:translateX(-50%) scale(1.1); } /* quick “mouth open” pop */
+  .cat.hungry { transform:scale(1); }
+  .cat.bite   { transform:scale(1.1); }
+  /* Dash visual (slight pop + trail) */
+  .cat.dash{
+    transform:scale(1.12) translateY(-2px);
+    text-shadow: -6px 0 rgba(255,255,255,.12), -12px 0 rgba(255,255,255,.06);
+  }
+  /* Fake-out visual (tiny shake) */
+  @keyframes fakeShake { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-2px) scale(1)} }
+  .cat.fake{ animation: fakeShake .28s ease-in-out; }
 
   /* Pill (draggable) */
   .pill{
@@ -83,31 +91,46 @@
   }
   .controls{font-size:.9rem; opacity:.8; margin-top:.6rem; line-height:1.25rem}
   footer{opacity:.6; font-size:.85rem; margin:.6rem 0 1.2rem; text-align:center}
+
+  /* Level up toast */
+  .toast{
+    position:absolute; left:50%; top:14%;
+    transform:translateX(-50%);
+    padding:.4rem .7rem; border-radius:999px; font-weight:800;
+    background:linear-gradient(180deg,#22d3ee,#14b8a6);
+    color:#06121a; border:1px solid rgba(255,255,255,.18);
+    box-shadow:0 14px 40px rgba(0,0,0,.35);
+    opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
 </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>🐱 Cat Pill Game — v4</h1>
+      <h1>🐱 Cat Pill Game — v6</h1>
       <div class="hud">
         <div class="badge">Score: <span id="score" class="score">0</span></div>
         <div class="badge">Lives: <span id="hearts" class="hearts">❤️❤️❤️</span></div>
+        <div class="badge">Level: <span id="level" class="level">1</span></div>
       </div>
     </header>
 
-    <div class="stage" id="stage" aria-label="Drag the pill to the cat">
+    <div class="stage" id="stage" aria-label="Drag the pill to the moving cat">
       <div class="top-zone" aria-hidden="true"></div>
       <div id="cat" class="cat hungry" aria-label="Cat">🐱</div>
+      <div class="toast" id="toast">Level Up!</div>
 
       <div class="overlay" id="overlay">
         <div class="card">
           <h2 id="title">Drag the 💊 to the 🐱</h2>
-          <p id="subtitle">Feed the cat to score points. Dropping the pill elsewhere costs a life. 3 lives total.</p>
+          <p id="subtitle">
+            The cat moves! Feed it to score points.<br/>
+            Misses cost a life. Every 5 feeds → next level (faster cat).<br/>
+            New: the cat may dash or fake you out!
+          </p>
           <button class="btn" id="startBtn">Tap / Click to Start</button>
-          <div class="controls">
-            Desktop: click & drag the pill<br/>
-            Mobile: touch & drag the pill
-          </div>
+          <div class="controls">Desktop: click & drag · Mobile: touch & drag</div>
         </div>
       </div>
     </div>
@@ -123,8 +146,10 @@
   const startBtn = document.getElementById('startBtn');
   const scoreEl = document.getElementById('score');
   const heartsEl = document.getElementById('hearts');
+  const levelEl = document.getElementById('level');
   const titleEl = document.getElementById('title');
   const subtitleEl = document.getElementById('subtitle');
+  const toastEl = document.getElementById('toast');
 
   // Sound
   const meow = new Audio('meow.mp3');
@@ -147,20 +172,58 @@
   }
 
   const state = {
-    running:false, score:0, lives:3,
-    pillEl:null, dragging:false,
-    offsetX:0, offsetY:0,
+    running:false, score:0, lives:3, level:1,
+    pillEl:null, dragging:false, offsetX:0, offsetY:0,
+    // cat motion
+    catX: 0, catDir: 1, catSpeed: 90,   // base px/s
+    lastTime: 0,
+    feedsThisLevel: 0,
+    // special behaviors
+    dashActive:false, dashTimer:0, dashMult:2.4, dashCooldown:0,
+    fakeActive:false, fakeTimer:0, fakeCooldown:0,
   };
+
+  function catBaseSpeedForLevel(lvl){
+    // Base speed growth per level (tweakable)
+    return 90 + (lvl-1) * 45; // 90, 135, 180, ...
+  }
+
+  function levelUp(){
+    state.level += 1;
+    state.feedsThisLevel = 0;
+    levelEl.textContent = state.level;
+    state.catSpeed = catBaseSpeedForLevel(state.level);
+    toastEl.textContent = `Level ${state.level}!`;
+    toastEl.classList.add('show');
+    setTimeout(()=>toastEl.classList.remove('show'), 900);
+  }
 
   function updateHUD(){
     scoreEl.textContent = state.score;
     heartsEl.textContent = '❤️'.repeat(state.lives) + '🖤'.repeat(3-state.lives);
+    levelEl.textContent = state.level;
   }
 
   function resetGame(){
-    state.score = 0; state.lives = 3; updateHUD();
+    state.score = 0; state.lives = 3; state.level = 1; state.feedsThisLevel = 0;
+    updateHUD();
     removePill(); createPill();
-    catEl.classList.remove('bite'); catEl.classList.add('hungry');
+
+    // center cat
+    const rect = stage.getBoundingClientRect();
+    const catRect = catEl.getBoundingClientRect();
+    state.catX = (rect.width - catRect.width) / 2;
+    catEl.style.left = `${state.catX}px`;
+    state.catDir = Math.random() < 0.5 ? -1 : 1;
+    state.catSpeed = catBaseSpeedForLevel(state.level);
+
+    // reset specials
+    state.dashActive = false; state.dashTimer = 0; state.dashCooldown = 0;
+    state.fakeActive = false; state.fakeTimer = 0; state.fakeCooldown = 0;
+
+    catEl.className = 'cat hungry';
+    state.lastTime = performance.now();
+    requestAnimationFrame(loop);
   }
 
   function start(){
@@ -173,7 +236,7 @@
     state.running = false;
     removePill();
     titleEl.textContent = 'Game Over 😿';
-    subtitleEl.textContent = `Final score: ${state.score}`;
+    subtitleEl.textContent = `Final score: ${state.score} · Level reached: ${state.level}`;
     startBtn.textContent = 'Play Again';
     overlay.style.display = 'grid';
   }
@@ -184,7 +247,6 @@
     pill.textContent = '💊';
     stage.appendChild(pill);
 
-    // place the pill somewhere in the top zone
     const rect = stage.getBoundingClientRect();
     const topH = rect.height * 0.64;
     const left = Math.random() * (rect.width - 64) + 16;
@@ -192,10 +254,7 @@
     pill.style.left = left + 'px';
     pill.style.top  = top  + 'px';
 
-    // store
     state.pillEl = pill;
-
-    // attach events
     pill.addEventListener('pointerdown', startDrag, {passive:false});
   }
 
@@ -230,7 +289,6 @@
     let x = e.clientX - rect.left - state.offsetX;
     let y = e.clientY - rect.top  - state.offsetY;
 
-    // constrain inside stage
     x = Math.max(0, Math.min(rect.width - 56, x));
     y = Math.max(0, Math.min(rect.height - 56, y));
 
@@ -245,30 +303,26 @@
 
     if(!state.pillEl) return;
 
-    // Check drop overlap with the cat
     const catR = catEl.getBoundingClientRect();
     const pillR = state.pillEl.getBoundingClientRect();
 
     const overlap = !(pillR.right < catR.left || pillR.left > catR.right || pillR.bottom < catR.top || pillR.top > catR.bottom);
 
     if(overlap){
-      // success
       try{ meow.currentTime = 0; meow.play(); }catch{}
       catEl.classList.remove('hungry');
       catEl.classList.add('bite');
-      // quick bite animation reset
       setTimeout(()=>{ catEl.classList.remove('bite'); catEl.classList.add('hungry'); }, 160);
 
       state.score += 1; updateHUD();
-      // spawn a new pill
+      state.feedsThisLevel += 1;
+      if(state.feedsThisLevel >= 5){ levelUp(); }
+
       removePill(); createPill();
     }else{
-      // miss
       buzz();
       state.lives -= 1; updateHUD();
       if(state.lives <= 0){ gameOver(); return; }
-
-      // reposition the same pill back to the top zone to try again
       snapPillBackToTop();
     }
   }
@@ -283,25 +337,122 @@
     state.pillEl.style.top  = top  + 'px';
   }
 
+  // ----- Special behaviors helpers -----
+  function maybeTriggerDash(dt){
+    if(state.dashActive || state.fakeActive || state.dashCooldown > 0) return;
+    // chance per second increases slightly with level
+    const pPerSec = 0.05 + 0.01 * (state.level - 1); // 5% +1%/lvl per second
+    if(Math.random() < pPerSec * dt){
+      state.dashActive = true;
+      // dash lasts a bit longer on higher levels
+      state.dashTimer = Math.min(1.0, 0.45 + 0.04 * (state.level - 1));
+      state.dashCooldown = 1.1; // seconds before next dash chance
+      catEl.classList.add('dash');
+    }
+  }
+  function maybeTriggerFake(dt){
+    if(state.fakeActive || state.dashActive || state.fakeCooldown > 0) return;
+    // small chance per second to fake-out (pause + likely reverse)
+    const pPerSec = 0.045; // ~4.5%/sec
+    if(Math.random() < pPerSec * dt){
+      state.fakeActive = true;
+      state.fakeTimer = 0.28 + Math.random()*0.18; // 0.28–0.46s pause
+      state.fakeCooldown = 1.2;
+      catEl.classList.add('fake');
+    }
+  }
+
+  // Main loop: move the cat + specials
+  function loop(now){
+    if(!state.running) return;
+    const dt = Math.min(0.033, (now - state.lastTime) / 1000);
+    state.lastTime = now;
+
+    // cool-down timers
+    state.dashCooldown = Math.max(0, state.dashCooldown - dt);
+    state.fakeCooldown = Math.max(0, state.fakeCooldown - dt);
+
+    // possibly trigger a dash or fake-out
+    maybeTriggerDash(dt);
+    maybeTriggerFake(dt);
+
+    const rect = stage.getBoundingClientRect();
+    const catRect = catEl.getBoundingClientRect();
+    const minX = 6;
+    const maxX = rect.width - catRect.width - 6;
+
+    // Determine effective speed
+    let speed = state.catSpeed;
+    if(state.dashActive) speed *= state.dashMult;
+    if(state.fakeActive) speed = 0; // pause during fake
+
+    // Tick special timers
+    if(state.dashActive){
+      state.dashTimer -= dt;
+      if(state.dashTimer <= 0){
+        state.dashActive = false;
+        catEl.classList.remove('dash');
+        // 40% chance to reverse immediately after dash
+        if(Math.random() < 0.4) state.catDir *= -1;
+      }
+    }
+    if(state.fakeActive){
+      state.fakeTimer -= dt;
+      if(state.fakeTimer <= 0){
+        state.fakeActive = false;
+        catEl.classList.remove('fake');
+        // 65% chance to reverse direction as the fake-out
+        if(Math.random() < 0.65) state.catDir *= -1;
+      }
+    }
+
+    // Move horizontally
+    state.catX += state.catDir * speed * dt;
+
+    // Bounce at edges
+    if(state.catX <= minX){
+      state.catX = minX;
+      state.catDir = 1;
+    }else if(state.catX >= maxX){
+      state.catX = maxX;
+      state.catDir = -1;
+    }
+
+    // Occasional random flip to stay unpredictable (lighter than v5)
+    if (!state.fakeActive && !state.dashActive && Math.random() < 0.001 + 0.0004 * state.level) {
+      state.catDir *= -1;
+    }
+
+    catEl.style.left = `${state.catX}px`;
+    requestAnimationFrame(loop);
+  }
+
   // Start button: also helps unlock audio on iOS
   startBtn.addEventListener('click', () => {
     try { meow.play().then(()=>{ meow.pause(); meow.currentTime = 0; }).catch(()=>{}); } catch {}
-    start();
+    overlay.style.display = 'none';
+    state.running = true;
+    resetGame();
   });
 
-  // Resize safety: keep pill in bounds if viewport changes
+  // Keep elements in bounds on resize
   window.addEventListener('resize', () => {
-    if(!state.pillEl) return;
     const rect = stage.getBoundingClientRect();
-    const pillR = state.pillEl.getBoundingClientRect();
-    let x = pillR.left - rect.left;
-    let y = pillR.top - rect.top;
-    x = Math.max(0, Math.min(rect.width - 56, x));
-    y = Math.max(0, Math.min(rect.height - 56, y));
-    state.pillEl.style.left = x + 'px';
-    state.pillEl.style.top  = y + 'px';
-  }, {passive:true});
+    const catRect = catEl.getBoundingClientRect();
+    const maxX = rect.width - catRect.width - 6;
+    state.catX = Math.max(6, Math.min(maxX, state.catX));
+    catEl.style.left = `${state.catX}px`;
 
+    if(state.pillEl){
+      const pillR = state.pillEl.getBoundingClientRect();
+      let x = pillR.left - rect.left;
+      let y = pillR.top  - rect.top;
+      x = Math.max(0, Math.min(rect.width - 56, x));
+      y = Math.max(0, Math.min(rect.height - 56, y));
+      state.pillEl.style.left = x + 'px';
+      state.pillEl.style.top  = y + 'px';
+    }
+  }, {passive:true});
 })();
 </script>
 </body>
