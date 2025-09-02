@@ -3,31 +3,31 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cat Pill Game — v6 (Dash + Fake-out)</title>
+<title>Cat Pill Game — v7 (Mild/Wild + 2D Motion)</title>
 <style>
-  :root{
-    --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --accent:#22d3ee;
-    --good:#34d399; --warn:#fbbf24; --bad:#f87171;
-  }
-  *{box-sizing:border-box}
+  :root{ --bg:#0f172a; --panel:#0b1220; --text:#e5e7eb; --accent:#22d3ee; --warn:#fbbf24; }
+  *{ box-sizing:border-box }
   body{
-    margin:0; min-height:100svh; display:grid; place-items:center;
-    color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;
+    margin:0; min-height:100svh; display:grid; place-items:center; color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;
     background: radial-gradient(1200px 800px at 50% -200px,#1f2937 0%,var(--bg) 45%);
   }
-  .wrap{width:min(960px,96vw);}
-  header{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:1rem 0 .5rem;}
-  h1{margin:0;font-size:clamp(1rem,2.5vw,1.2rem);opacity:.9}
-  .hud{display:flex;align-items:center;gap:.75rem;font-weight:600;flex-wrap:wrap}
+  .wrap{ width:min(960px,96vw); }
+  header{ display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin:1rem 0 .5rem; flex-wrap:wrap }
+  h1{ margin:0; font-size:clamp(1rem,2.5vw,1.2rem); opacity:.9 }
+  .hud{ display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; font-weight:600 }
   .badge{
     background:linear-gradient(180deg,#16223a,#0b1220);
-    border:1px solid rgba(255,255,255,.1);
-    border-radius:10px;padding:.35rem .6rem;display:inline-flex;gap:.4rem;align-items:center;
-    box-shadow:inset 0 8px 24px rgba(0,0,0,.2),0 4px 12px rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:10px; padding:.35rem .6rem; display:inline-flex; gap:.4rem; align-items:center;
+    box-shadow:inset 0 8px 24px rgba(0,0,0,.2), 0 4px 12px rgba(0,0,0,.25);
   }
-  .score{color:var(--accent)}
-  .hearts{letter-spacing:2px}
-  .level{color:var(--warn)}
+  .score{ color:var(--accent) }
+  .level{ color:var(--warn) }
+  .mode-btn{
+    border:none; padding:.35rem .6rem; border-radius:10px; font-weight:800; cursor:pointer;
+    color:#06121a; background:linear-gradient(180deg,#22d3ee,#14b8a6);
+  }
 
   .stage{
     position:relative; border-radius:16px; overflow:hidden;
@@ -43,63 +43,51 @@
     pointer-events:none;
   }
 
-  /* Cat (emoji) */
+  /* Cat emoji (2D positioned using left + bottom) */
   .cat{
-    position:absolute; bottom:18px;
+    position:absolute; left:50%; bottom:18px; transform:translateX(-50%);
     font-size:clamp(56px,10vw,96px); line-height:1;
     filter: drop-shadow(0 10px 20px rgba(0,0,0,.3));
     transition: transform .12s ease;
-    will-change: transform, left;
+    will-change: transform, left, bottom;
   }
-  .cat.hungry { transform:scale(1); }
-  .cat.bite   { transform:scale(1.1); }
-  /* Dash visual (slight pop + trail) */
-  .cat.dash{
-    transform:scale(1.12) translateY(-2px);
-    text-shadow: -6px 0 rgba(255,255,255,.12), -12px 0 rgba(255,255,255,.06);
-  }
-  /* Fake-out visual (tiny shake) */
-  @keyframes fakeShake { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-2px) scale(1)} }
+  .cat.hungry{ transform:translateX(-50%) scale(1); }
+  .cat.bite{   transform:translateX(-50%) scale(1.1); }
+  .cat.dash{   transform:translateX(-50%) scale(1.12) translateY(-2px); text-shadow:-6px 0 rgba(255,255,255,.12), -12px 0 rgba(255,255,255,.06); }
+  @keyframes fakeShake { 0%,100%{transform:translateX(-50%) translateY(0) scale(1)} 50%{transform:translateX(-50%) translateY(-2px) scale(1)} }
   .cat.fake{ animation: fakeShake .28s ease-in-out; }
 
-  /* Pill (draggable) */
   .pill{
     position:absolute; font-size:clamp(34px,7.5vw,56px); line-height:1; cursor:grab;
-    touch-action:none; user-select:none;
-    transition: transform .05s linear;
-    will-change: transform, left, top;
+    touch-action:none; user-select:none; will-change: left, top; transition: transform .05s linear;
   }
   .pill:active{ cursor:grabbing; }
 
-  /* Overlay */
   .overlay{
     position:absolute; inset:0; display:grid; place-items:center;
     background:rgba(0,0,0,.45); backdrop-filter: blur(4px);
   }
   .card{
-    text-align:center; width:min(420px,90%);
+    text-align:center; width:min(460px,92%);
     background:linear-gradient(180deg,#0b1220,#0a0f1a);
-    border:1px solid rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.12);
     padding:1rem 1.2rem; border-radius:14px;
     box-shadow:0 18px 60px rgba(0,0,0,.45);
   }
-  .card h2{margin:.1rem 0 .4rem;font-size:1.1rem}
-  .card p{margin:0 0 .8rem; opacity:.85}
+  .card h2{ margin:.1rem 0 .4rem; font-size:1.1rem }
+  .card p{ margin:0 0 .8rem; opacity:.85 }
   .btn{
     width:100%; border:none; border-radius:10px; padding:.65rem .9rem; font-weight:800; cursor:pointer;
     color:#06121a; background:linear-gradient(180deg,#22d3ee,#14b8a6);
   }
-  .controls{font-size:.9rem; opacity:.8; margin-top:.6rem; line-height:1.25rem}
-  footer{opacity:.6; font-size:.85rem; margin:.6rem 0 1.2rem; text-align:center}
+  .controls{ font-size:.9rem; opacity:.8; margin-top:.6rem; line-height:1.25rem }
+  footer{ opacity:.6; font-size:.85rem; margin:.6rem 0 1.2rem; text-align:center }
 
-  /* Level up toast */
   .toast{
-    position:absolute; left:50%; top:14%;
-    transform:translateX(-50%);
+    position:absolute; left:50%; top:14%; transform:translateX(-50%);
     padding:.4rem .7rem; border-radius:999px; font-weight:800;
-    background:linear-gradient(180deg,#22d3ee,#14b8a6);
-    color:#06121a; border:1px solid rgba(255,255,255,.18);
-    box-shadow:0 14px 40px rgba(0,0,0,.35);
+    background:linear-gradient(180deg,#22d3ee,#14b8a6); color:#06121a;
+    border:1px solid rgba(255,255,255,.18); box-shadow:0 14px 40px rgba(0,0,0,.35);
     opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
@@ -108,11 +96,12 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>🐱 Cat Pill Game — v6</h1>
+      <h1>🐱 Cat Pill Game — v7</h1>
       <div class="hud">
         <div class="badge">Score: <span id="score" class="score">0</span></div>
-        <div class="badge">Lives: <span id="hearts" class="hearts">❤️❤️❤️</span></div>
+        <div class="badge">Lives: <span id="hearts">❤️❤️❤️</span></div>
         <div class="badge">Level: <span id="level" class="level">1</span></div>
+        <button class="mode-btn" id="modeBtn" aria-pressed="false" title="Toggle Mild/Wild">Mode: Mild</button>
       </div>
     </header>
 
@@ -125,9 +114,8 @@
         <div class="card">
           <h2 id="title">Drag the 💊 to the 🐱</h2>
           <p id="subtitle">
-            The cat moves! Feed it to score points.<br/>
-            Misses cost a life. Every 5 feeds → next level (faster cat).<br/>
-            New: the cat may dash or fake you out!
+            Feed the cat to score points. Misses cost a life (3 total).<br/>
+            The cat moves in 2D. Every 5 feeds → next level (faster). Choose <strong>Mild</strong> or <strong>Wild</strong>!
           </p>
           <button class="btn" id="startBtn">Tap / Click to Start</button>
           <div class="controls">Desktop: click & drag · Mobile: touch & drag</div>
@@ -147,15 +135,13 @@
   const scoreEl = document.getElementById('score');
   const heartsEl = document.getElementById('hearts');
   const levelEl = document.getElementById('level');
-  const titleEl = document.getElementById('title');
-  const subtitleEl = document.getElementById('subtitle');
   const toastEl = document.getElementById('toast');
+  const modeBtn = document.getElementById('modeBtn');
 
   // Sound
-  const meow = new Audio('meow.mp3');
-  meow.preload = 'auto'; meow.volume = 0.85;
+  const meow = new Audio('meow.mp3'); meow.preload = 'auto'; meow.volume = 0.85;
 
-  // optional tiny buzz for a miss
+  // tiny buzz for miss
   let audioCtx;
   function buzz(){
     try{
@@ -173,29 +159,43 @@
 
   const state = {
     running:false, score:0, lives:3, level:1,
+    mode:'mild',                            // 'mild' | 'wild'
     pillEl:null, dragging:false, offsetX:0, offsetY:0,
-    // cat motion
-    catX: 0, catDir: 1, catSpeed: 90,   // base px/s
-    lastTime: 0,
-    feedsThisLevel: 0,
-    // special behaviors
+    // cat motion (2D)
+    catX:0, catYBottom:18, catDirX:1, catDirY:1,
+    catSpeedBase:90, catSpeedYFactor:0.75,  // vertical slightly slower for control
+    lastTime:0, feedsThisLevel:0,
+    // specials
     dashActive:false, dashTimer:0, dashMult:2.4, dashCooldown:0,
     fakeActive:false, fakeTimer:0, fakeCooldown:0,
   };
 
-  function catBaseSpeedForLevel(lvl){
-    // Base speed growth per level (tweakable)
-    return 90 + (lvl-1) * 45; // 90, 135, 180, ...
+  // --- Mode tuning ---
+  function applyMode(){
+    // Baselines per mode
+    if(state.mode === 'mild'){
+      state.catSpeedBase = 90;               // base px/s per level
+      state.catSpeedYFactor = 0.70;
+      state.dashMult = 2.2;
+      dashPerSecBase = 0.04; dashPerSecPerLvl = 0.009;
+      fakePerSec = 0.035;
+      vertBandRatio = 0.18;                  // bottom 18% of stage
+      randomFlipBase = 0.0008; randomFlipPerLvl = 0.0003;
+    } else { // wild
+      state.catSpeedBase = 110;
+      state.catSpeedYFactor = 0.85;
+      state.dashMult = 2.8;
+      dashPerSecBase = 0.07; dashPerSecPerLvl = 0.014;
+      fakePerSec = 0.055;
+      vertBandRatio = 0.32;                  // bottom 32% of stage
+      randomFlipBase = 0.0012; randomFlipPerLvl = 0.0006;
+    }
   }
+  // defaults (initialized by applyMode in reset)
+  let dashPerSecBase=0.04, dashPerSecPerLvl=0.009, fakePerSec=0.035, vertBandRatio=0.18, randomFlipBase=0.0008, randomFlipPerLvl=0.0003;
 
-  function levelUp(){
-    state.level += 1;
-    state.feedsThisLevel = 0;
-    levelEl.textContent = state.level;
-    state.catSpeed = catBaseSpeedForLevel(state.level);
-    toastEl.textContent = `Level ${state.level}!`;
-    toastEl.classList.add('show');
-    setTimeout(()=>toastEl.classList.remove('show'), 900);
+  function catBaseSpeedForLevel(lvl){
+    return state.catSpeedBase + (lvl-1) * 45; // level scaling
   }
 
   function updateHUD(){
@@ -204,22 +204,33 @@
     levelEl.textContent = state.level;
   }
 
+  function levelUp(){
+    state.level += 1;
+    state.feedsThisLevel = 0;
+    updateHUD();
+    toastEl.textContent = `Level ${state.level}!`;
+    toastEl.classList.add('show');
+    setTimeout(()=>toastEl.classList.remove('show'), 900);
+  }
+
   function resetGame(){
-    state.score = 0; state.lives = 3; state.level = 1; state.feedsThisLevel = 0;
+    applyMode();
+    state.score=0; state.lives=3; state.level=1; state.feedsThisLevel=0;
     updateHUD();
     removePill(); createPill();
 
-    // center cat
     const rect = stage.getBoundingClientRect();
     const catRect = catEl.getBoundingClientRect();
-    state.catX = (rect.width - catRect.width) / 2;
+    state.catX = (rect.width - catRect.width)/2;
+    // vertical band: from 12px above bottom up to vertBandRatio * height
+    state.catYBottom = 18; // start near bottom
     catEl.style.left = `${state.catX}px`;
-    state.catDir = Math.random() < 0.5 ? -1 : 1;
-    state.catSpeed = catBaseSpeedForLevel(state.level);
+    catEl.style.bottom = `${state.catYBottom}px`;
 
-    // reset specials
-    state.dashActive = false; state.dashTimer = 0; state.dashCooldown = 0;
-    state.fakeActive = false; state.fakeTimer = 0; state.fakeCooldown = 0;
+    state.catDirX = Math.random()<0.5 ? -1 : 1;
+    state.catDirY = Math.random()<0.5 ? -1 : 1;
+    state.dashActive=false; state.dashTimer=0; state.dashCooldown=0;
+    state.fakeActive=false; state.fakeTimer=0; state.fakeCooldown=0;
 
     catEl.className = 'cat hungry';
     state.lastTime = performance.now();
@@ -235,16 +246,18 @@
   function gameOver(){
     state.running = false;
     removePill();
-    titleEl.textContent = 'Game Over 😿';
-    subtitleEl.textContent = `Final score: ${state.score} · Level reached: ${state.level}`;
-    startBtn.textContent = 'Play Again';
+    const title = document.getElementById('title');
+    const subtitle = document.getElementById('subtitle');
+    title.textContent = 'Game Over 😿';
+    subtitle.textContent = `Final score: ${state.score} · Level: ${state.level} · Mode: ${state.mode.toUpperCase()}`;
+    document.getElementById('startBtn').textContent = 'Play Again';
     overlay.style.display = 'grid';
   }
 
+  // --- Pill management (drag & drop) ---
   function createPill(){
     const pill = document.createElement('div');
-    pill.className = 'pill';
-    pill.textContent = '💊';
+    pill.className = 'pill'; pill.textContent = '💊';
     stage.appendChild(pill);
 
     const rect = stage.getBoundingClientRect();
@@ -253,29 +266,23 @@
     const top  = Math.random() * (topH - 80) + 16;
     pill.style.left = left + 'px';
     pill.style.top  = top  + 'px';
-
     state.pillEl = pill;
+
     pill.addEventListener('pointerdown', startDrag, {passive:false});
   }
 
-  function removePill(){
-    if(state.pillEl && state.pillEl.parentNode){
-      state.pillEl.remove();
-      state.pillEl = null;
-    }
-  }
+  function removePill(){ if(state.pillEl){ state.pillEl.remove(); state.pillEl = null; } }
 
   function startDrag(e){
     if(!state.running) return;
     e.preventDefault();
-    const pill = state.pillEl;
-    if(!pill) return;
+    const pill = state.pillEl; if(!pill) return;
     pill.setPointerCapture(e.pointerId);
     state.dragging = true;
 
-    const pillRect = pill.getBoundingClientRect();
-    state.offsetX = e.clientX - pillRect.left;
-    state.offsetY = e.clientY - pillRect.top;
+    const r = pill.getBoundingClientRect();
+    state.offsetX = e.clientX - r.left;
+    state.offsetY = e.clientY - r.top;
 
     document.addEventListener('pointermove', onDrag, {passive:false});
     document.addEventListener('pointerup', endDrag, {once:true, passive:false});
@@ -285,33 +292,27 @@
     if(!state.dragging || !state.pillEl) return;
     e.preventDefault();
     const rect = stage.getBoundingClientRect();
-
     let x = e.clientX - rect.left - state.offsetX;
     let y = e.clientY - rect.top  - state.offsetY;
-
     x = Math.max(0, Math.min(rect.width - 56, x));
     y = Math.max(0, Math.min(rect.height - 56, y));
-
     state.pillEl.style.left = x + 'px';
     state.pillEl.style.top  = y + 'px';
   }
 
-  function endDrag(e){
+  function endDrag(){
     if(!state.dragging) return;
     state.dragging = false;
     document.removeEventListener('pointermove', onDrag);
-
     if(!state.pillEl) return;
 
     const catR = catEl.getBoundingClientRect();
     const pillR = state.pillEl.getBoundingClientRect();
-
     const overlap = !(pillR.right < catR.left || pillR.left > catR.right || pillR.bottom < catR.top || pillR.top > catR.bottom);
 
     if(overlap){
       try{ meow.currentTime = 0; meow.play(); }catch{}
-      catEl.classList.remove('hungry');
-      catEl.classList.add('bite');
+      catEl.classList.remove('hungry'); catEl.classList.add('bite');
       setTimeout(()=>{ catEl.classList.remove('bite'); catEl.classList.add('hungry'); }, 160);
 
       state.score += 1; updateHUD();
@@ -322,7 +323,7 @@
     }else{
       buzz();
       state.lives -= 1; updateHUD();
-      if(state.lives <= 0){ gameOver(); return; }
+      if(state.lives <= 0) return gameOver();
       snapPillBackToTop();
     }
   }
@@ -337,63 +338,62 @@
     state.pillEl.style.top  = top  + 'px';
   }
 
-  // ----- Special behaviors helpers -----
+  // --- Specials ---
   function maybeTriggerDash(dt){
     if(state.dashActive || state.fakeActive || state.dashCooldown > 0) return;
-    // chance per second increases slightly with level
-    const pPerSec = 0.05 + 0.01 * (state.level - 1); // 5% +1%/lvl per second
+    const pPerSec = dashPerSecBase + dashPerSecPerLvl * (state.level - 1);
     if(Math.random() < pPerSec * dt){
       state.dashActive = true;
-      // dash lasts a bit longer on higher levels
       state.dashTimer = Math.min(1.0, 0.45 + 0.04 * (state.level - 1));
-      state.dashCooldown = 1.1; // seconds before next dash chance
+      state.dashCooldown = 1.05;
       catEl.classList.add('dash');
     }
   }
   function maybeTriggerFake(dt){
     if(state.fakeActive || state.dashActive || state.fakeCooldown > 0) return;
-    // small chance per second to fake-out (pause + likely reverse)
-    const pPerSec = 0.045; // ~4.5%/sec
-    if(Math.random() < pPerSec * dt){
+    if(Math.random() < fakePerSec * dt){
       state.fakeActive = true;
-      state.fakeTimer = 0.28 + Math.random()*0.18; // 0.28–0.46s pause
+      state.fakeTimer = 0.28 + Math.random()*0.18;
       state.fakeCooldown = 1.2;
       catEl.classList.add('fake');
     }
   }
 
-  // Main loop: move the cat + specials
+  // --- Main loop: 2D motion, specials, randomness ---
   function loop(now){
     if(!state.running) return;
-    const dt = Math.min(0.033, (now - state.lastTime) / 1000);
+    const dt = Math.min(0.033, (now - state.lastTime)/1000);
     state.lastTime = now;
 
-    // cool-down timers
     state.dashCooldown = Math.max(0, state.dashCooldown - dt);
     state.fakeCooldown = Math.max(0, state.fakeCooldown - dt);
 
-    // possibly trigger a dash or fake-out
     maybeTriggerDash(dt);
     maybeTriggerFake(dt);
 
     const rect = stage.getBoundingClientRect();
     const catRect = catEl.getBoundingClientRect();
-    const minX = 6;
-    const maxX = rect.width - catRect.width - 6;
 
-    // Determine effective speed
-    let speed = state.catSpeed;
-    if(state.dashActive) speed *= state.dashMult;
-    if(state.fakeActive) speed = 0; // pause during fake
+    // vertical band (bottom portion of stage)
+    const minBottom = 12;
+    const maxBottom = Math.max(60, rect.height * vertBandRatio);
 
-    // Tick special timers
+    // Effective speeds
+    let base = catBaseSpeedForLevel(state.level);
+    let vx = base;
+    let vy = base * state.catSpeedYFactor;
+
+    if(state.dashActive){ vx *= state.dashMult; vy *= state.dashMult; }
+    if(state.fakeActive){ vx = 0; vy = 0; }
+
+    // Count down specials
     if(state.dashActive){
       state.dashTimer -= dt;
       if(state.dashTimer <= 0){
         state.dashActive = false;
         catEl.classList.remove('dash');
-        // 40% chance to reverse immediately after dash
-        if(Math.random() < 0.4) state.catDir *= -1;
+        if(Math.random() < 0.4) state.catDirX *= -1;
+        if(Math.random() < 0.25) state.catDirY *= -1;
       }
     }
     if(state.fakeActive){
@@ -401,38 +401,48 @@
       if(state.fakeTimer <= 0){
         state.fakeActive = false;
         catEl.classList.remove('fake');
-        // 65% chance to reverse direction as the fake-out
-        if(Math.random() < 0.65) state.catDir *= -1;
+        if(Math.random() < 0.65) state.catDirX *= -1;
+        if(Math.random() < 0.45) state.catDirY *= -1;
       }
     }
 
-    // Move horizontally
-    state.catX += state.catDir * speed * dt;
+    // Move X
+    state.catX += state.catDirX * vx * dt;
+    const minX = 6, maxX = rect.width - catRect.width - 6;
+    if(state.catX <= minX){ state.catX = minX; state.catDirX = 1; }
+    else if(state.catX >= maxX){ state.catX = maxX; state.catDirX = -1; }
 
-    // Bounce at edges
-    if(state.catX <= minX){
-      state.catX = minX;
-      state.catDir = 1;
-    }else if(state.catX >= maxX){
-      state.catX = maxX;
-      state.catDir = -1;
+    // Move Y (by changing CSS bottom)
+    state.catYBottom += state.catDirY * vy * dt;
+    if(state.catYBottom <= minBottom){ state.catYBottom = minBottom; state.catDirY = 1; }
+    else if(state.catYBottom >= maxBottom){ state.catYBottom = maxBottom; state.catDirY = -1; }
+
+    // Occasional random flips (keep it unpredictable)
+    if(!state.fakeActive && !state.dashActive){
+      if(Math.random() < (randomFlipBase + randomFlipPerLvl*state.level)) state.catDirX *= -1;
+      if(Math.random() < (randomFlipBase*0.8 + randomFlipPerLvl*0.6*state.level)) state.catDirY *= -1;
     }
 
-    // Occasional random flip to stay unpredictable (lighter than v5)
-    if (!state.fakeActive && !state.dashActive && Math.random() < 0.001 + 0.0004 * state.level) {
-      state.catDir *= -1;
-    }
-
+    // Apply position
     catEl.style.left = `${state.catX}px`;
+    catEl.style.bottom = `${state.catYBottom}px`;
+
     requestAnimationFrame(loop);
   }
 
-  // Start button: also helps unlock audio on iOS
+  // --- Mode toggle ---
+  modeBtn.addEventListener('click', () => {
+    state.mode = state.mode === 'mild' ? 'wild' : 'mild';
+    modeBtn.textContent = `Mode: ${state.mode[0].toUpperCase()+state.mode.slice(1)}`;
+    modeBtn.setAttribute('aria-pressed', state.mode === 'wild' ? 'true' : 'false');
+    // If game running, re-apply tuning immediately (keeps current level/score)
+    applyMode();
+  });
+
+  // Start button (also unlocks audio on iOS)
   startBtn.addEventListener('click', () => {
-    try { meow.play().then(()=>{ meow.pause(); meow.currentTime = 0; }).catch(()=>{}); } catch {}
-    overlay.style.display = 'none';
-    state.running = true;
-    resetGame();
+    try{ meow.play().then(()=>{ meow.pause(); meow.currentTime=0; }).catch(()=>{}); }catch{}
+    start();
   });
 
   // Keep elements in bounds on resize
@@ -440,8 +450,11 @@
     const rect = stage.getBoundingClientRect();
     const catRect = catEl.getBoundingClientRect();
     const maxX = rect.width - catRect.width - 6;
+    const maxBottom = Math.max(60, rect.height * vertBandRatio);
     state.catX = Math.max(6, Math.min(maxX, state.catX));
+    state.catYBottom = Math.max(12, Math.min(maxBottom, state.catYBottom));
     catEl.style.left = `${state.catX}px`;
+    catEl.style.bottom = `${state.catYBottom}px`;
 
     if(state.pillEl){
       const pillR = state.pillEl.getBoundingClientRect();
