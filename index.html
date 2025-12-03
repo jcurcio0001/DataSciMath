@@ -5,98 +5,251 @@
     <title>Sentinel AI – Firearm Detection with Deep Learning</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        :root {
+            --fau-navy: #003366;
+            --fau-red: #b30000;
+            --bg-light: #f7f7f9;
+            --text-main: #222;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             margin: 0;
             padding: 0;
             line-height: 1.6;
-            background: #f7f7f9;
-            color: #222;
+            background: var(--bg-light);
+            color: var(--text-main);
         }
-        header {
-            background: #003366;
-            color: white;
-            padding: 1.5rem 2rem;
-            text-align: center;
+
+        /* Top nav */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--fau-navy);
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
         }
-        header h1 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-        header p {
-            margin: 0.3rem 0 0;
+
+        .nav-title {
+            font-weight: 600;
             font-size: 0.95rem;
         }
+
+        .nav-links a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        header.hero {
+            background: linear-gradient(135deg, var(--fau-navy), #001a33);
+            color: white;
+            padding: 2.5rem 1.5rem 2rem;
+            text-align: center;
+        }
+
+        header.hero h1 {
+            margin: 0 0 0.4rem;
+            font-size: 1.9rem;
+        }
+
+        header.hero p {
+            margin: 0.15rem 0;
+            font-size: 0.95rem;
+            opacity: 0.95;
+        }
+
+        .hero-tagline {
+            margin-top: 0.75rem;
+            font-style: italic;
+            font-size: 0.95rem;
+        }
+
         main {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem 3rem;
+            max-width: 960px;
+            margin: 1.5rem auto 3rem;
+            padding: 0 1rem 2.5rem;
             background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             border-radius: 6px;
         }
+
         section {
-            padding: 1.5rem 1.5rem 0.5rem;
+            padding: 1.75rem 1.5rem 0.75rem;
             border-bottom: 1px solid #eee;
         }
+
         section:last-of-type {
             border-bottom: none;
             padding-bottom: 2rem;
         }
+
         h2 {
             margin-top: 0;
-            color: #003366;
+            color: var(--fau-navy);
             font-size: 1.3rem;
+            border-left: 4px solid var(--fau-red);
+            padding-left: 0.6rem;
         }
+
         h3 {
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.35rem;
             font-size: 1.05rem;
+            color: #333;
         }
+
         ul {
-            padding-left: 1.2rem;
+            padding-left: 1.1rem;
         }
-        img {
-            max-width: 100%;
-            border-radius: 4px;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+
+        li {
+            margin-bottom: 0.25rem;
         }
+
         .figure {
             text-align: center;
             margin: 1rem 0 1.5rem;
         }
+
+        .figure img {
+            max-width: 100%;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.12);
+        }
+
         .figure-caption {
             font-size: 0.85rem;
             color: #555;
             margin-top: 0.4rem;
         }
+
+        .pill {
+            display: inline-block;
+            background: #eef3fb;
+            color: var(--fau-navy);
+            border-radius: 999px;
+            padding: 0.15rem 0.65rem;
+            font-size: 0.8rem;
+            margin-right: 0.35rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .tag-row {
+            margin-top: 0.5rem;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
         footer {
             text-align: center;
-            padding: 1rem;
+            padding: 0.75rem;
             font-size: 0.8rem;
             color: #666;
+        }
+
+        a {
+            color: var(--fau-red);
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 640px) {
+            .nav {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+            .nav-links {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            .nav-links a {
+                margin-left: 0;
+                margin-right: 0.75rem;
+                margin-bottom: 0.25rem;
+            }
         }
     </style>
 </head>
 <body>
-<header>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+    <div class="nav-title">Sentinel AI · Math of Data Science</div>
+    <div class="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#approach">Approach</a>
+        <a href="#visualizations">Visualizations</a>
+        <a href="#results">Results</a>
+        <a href="#takeaways">Takeaways</a>
+        <a href="#poster">Poster &amp; Slides</a>
+    </div>
+</nav>
+
+<!-- HERO HEADER -->
+<header class="hero">
     <h1>Sentinel AI: Real-Time Firearm Detection System</h1>
-    <p>Jillian Curcio · Florida Atlantic University · Mathematics of Data Science</p>
+    <p><strong>Author:</strong> Jillian Curcio</p>
+    <p>Florida Atlantic University · Mathematics of Data Science</p>
+    <p class="hero-tagline">Exploring deep learning for automated handgun vs. rifle classification using AlexNet and ResNet.</p>
 </header>
 
 <main>
+
     <!-- Problem & Motivation -->
     <section id="problem">
         <h2>Problem &amp; Motivation</h2>
-        <p>
-            Traditional surveillance systems rely on human operators watching many camera feeds at once. This can lead
-            to delayed recognition of threats, observer fatigue, and missed frames where a weapon appears. With firearm-related
-            incidents remaining a serious concern in schools, malls, and workplaces, there is a clear need for tools that can
-            automatically flag potential weapons and support faster response times.
-        </p>
-        <p>
-            Sentinel AI explores whether deep learning can reliably distinguish between images of handguns and rifles,
-            serving as a building block toward automated firearm detection systems that assist, rather than replace, security personnel.
-        </p>
+        <div class="two-col">
+            <div>
+                <p>
+                    Traditional surveillance systems rely on human operators watching many camera feeds at once. This can lead
+                    to delayed recognition of threats, observer fatigue, and missed frames where a weapon briefly appears.
+                </p>
+                <p>
+                    With firearm-related incidents remaining a serious concern in schools, malls, and workplaces, there is a need
+                    for tools that can automatically flag potential weapons and support faster response times. Sentinel AI explores
+                    whether deep learning can reliably distinguish between handgun and rifle images as a foundation for automated
+                    firearm detection systems that assist, rather than replace, security personnel.
+                </p>
+            </div>
+            <div>
+                <h3>Project Focus</h3>
+                <div class="tag-row">
+                    <span class="pill">Computer Vision</span>
+                    <span class="pill">Deep Learning</span>
+                    <span class="pill">Safety &amp; Security</span>
+                    <span class="pill">AlexNet</span>
+                    <span class="pill">ResNet18</span>
+                </div>
+                <h3>Core Question</h3>
+                <p>
+                    Can transfer learning with AlexNet (and deeper models like ResNet18) achieve high handgun vs. rifle 
+                    classification accuracy on a modest dataset suitable for real-world surveillance scenarios?
+                </p>
+            </div>
+        </div>
     </section>
 
     <!-- Technical Approach -->
@@ -107,8 +260,8 @@
         <ul>
             <li>Two classes: <strong>Handgun</strong> and <strong>Rifle</strong>.</li>
             <li>Images resized to <strong>224 × 224</strong> pixels and normalized using ImageNet statistics.</li>
-            <li>Data split into training and validation sets.</li>
-            <li>Augmentations applied, including rotations, brightness adjustments, and minor occlusions, to improve generalization.</li>
+            <li>Training/validation split with held-out validation for model selection.</li>
+            <li>Augmentations: rotations, brightness adjustments, and minor occlusions to improve generalization.</li>
         </ul>
 
         <h3>Model Architecture</h3>
@@ -124,7 +277,7 @@
             <li>Optimizers: <strong>Adam</strong> and <strong>SGD</strong>.</li>
             <li>Learning rate tuned in the range <strong>2e-5 to 1e-4</strong> for stable convergence.</li>
             <li>Training ran for approximately <strong>15 epochs</strong>, with convergence around epoch ~13.</li>
-            <li>Experiments run in <strong>Google Colab</strong> with GPU acceleration.</li>
+            <li>Experiments performed in <strong>Google Colab</strong> with GPU acceleration.</li>
             <li>Metrics and artifacts logged using <strong>Weights &amp; Biases</strong>.</li>
         </ul>
     </section>
@@ -174,14 +327,41 @@
             <li><strong>Optimization details matter:</strong> Adam generally yielded smoother, more stable convergence than SGD.</li>
         </ul>
         <p>
-            Future work could include expanding the dataset, moving from image classification to object detection (e.g., YOLO or Faster R-CNN),
-            integrating the model into a live video pipeline, and deploying models on edge devices to support real-time surveillance scenarios.
+            Future work could include expanding the dataset, moving from image classification to object detection
+            (e.g., YOLO or Faster R-CNN), integrating the model into a live video pipeline, and deploying models on
+            edge devices to support real-time surveillance scenarios.
         </p>
+    </section>
+
+    <!-- Poster & Slides -->
+    <section id="poster">
+        <h2>Scientific Poster &amp; Slides</h2>
+        <p>
+            This website is part of a larger project deliverable that also includes a research-style poster and a narrated slide presentation.
+        </p>
+        <ul>
+            <li>
+                <strong>Scientific Poster:</strong>
+                <!-- Replace the # with your actual poster link (e.g., GitHub file, Google Drive, or FAU link) -->
+                <a href="https://docs.google.com/presentation/d/1e9QXib3Vi7Zn1pcFc5_J8lN_VQHWw0ZMswpKLG78v2A/edit?usp=sharing" target="_blank" rel="noopener">View poster (link coming soon)</a>
+            </li>
+            <li>
+                <strong>Slide Deck:</strong>
+                <!-- Replace the # with the sharing link to your Google Slides or a PDF in the repo -->
+                <a href="https://docs.google.com/presentation/d/1kJn64EFH-Vat6LruN1SmcRfSKsYmhhM4gcjub03U3fk/edit?usp=sharing" target="_blank" rel="noopener">View presentation slides (link coming soon)</a>
+            </li>
+        </ul>
+        <!-- If you want to embed Google Slides directly, replace the iframe src with your published slides URL
+        <iframe src="YOUR_GOOGLE_SLIDES_EMBED_URL_HERE"
+                style="width:100%;height:400px;border:1px solid #ccc;border-radius:4px;"
+                allowfullscreen loading="lazy"></iframe>
+        -->
     </section>
 </main>
 
 <footer>
-    Sentinel AI · GitHub Pages Project · 2025
+    Sentinel AI · GitHub Pages Project · 2025 · Jillian Curcio
 </footer>
+
 </body>
 </html>
