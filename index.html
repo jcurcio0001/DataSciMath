@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sentinel AI – Firearm Detection with Deep Learning</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            background: #f7f7f9;
+            color: #222;
+        }
+        header {
+            background: #003366;
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        header p {
+            margin: 0.3rem 0 0;
+            font-size: 0.95rem;
+        }
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem 3rem;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 6px;
+        }
+        section {
+            padding: 1.5rem 1.5rem 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        section:last-of-type {
+            border-bottom: none;
+            padding-bottom: 2rem;
+        }
+        h2 {
+            margin-top: 0;
+            color: #003366;
+            font-size: 1.3rem;
+        }
+        h3 {
+            margin-bottom: 0.3rem;
+            font-size: 1.05rem;
+        }
+        ul {
+            padding-left: 1.2rem;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+        .figure {
+            text-align: center;
+            margin: 1rem 0 1.5rem;
+        }
+        .figure-caption {
+            font-size: 0.85rem;
+            color: #555;
+            margin-top: 0.4rem;
+        }
+        footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Sentinel AI: Real-Time Firearm Detection System</h1>
+    <p>Jillian Curcio · Florida Atlantic University · Mathematics of Data Science</p>
+</header>
+
+<main>
+    <!-- Problem & Motivation -->
+    <section id="problem">
+        <h2>Problem &amp; Motivation</h2>
+        <p>
+            Traditional surveillance systems rely on human operators watching many camera feeds at once. This can lead
+            to delayed recognition of threats, observer fatigue, and missed frames where a weapon appears. With firearm-related
+            incidents remaining a serious concern in schools, malls, and workplaces, there is a clear need for tools that can
+            automatically flag potential weapons and support faster response times.
+        </p>
+        <p>
+            Sentinel AI explores whether deep learning can reliably distinguish between images of handguns and rifles,
+            serving as a building block toward automated firearm detection systems that assist, rather than replace, security personnel.
+        </p>
+    </section>
+
+    <!-- Technical Approach -->
+    <section id="approach">
+        <h2>Technical Approach: AlexNet-Based Classification</h2>
+
+        <h3>Dataset</h3>
+        <ul>
+            <li>Two classes: <strong>Handgun</strong> and <strong>Rifle</strong>.</li>
+            <li>Images resized to <strong>224 × 224</strong> pixels and normalized using ImageNet statistics.</li>
+            <li>Data split into training and validation sets.</li>
+            <li>Augmentations applied, including rotations, brightness adjustments, and minor occlusions, to improve generalization.</li>
+        </ul>
+
+        <h3>Model Architecture</h3>
+        <ul>
+            <li>Base model: <strong>AlexNet</strong>, pretrained on ImageNet.</li>
+            <li>Final fully connected layer modified for a 2-class output (handgun vs. rifle).</li>
+            <li>ReLU activations and a softmax output layer for class probabilities.</li>
+        </ul>
+
+        <h3>Training Setup</h3>
+        <ul>
+            <li>Loss function: <strong>Cross-entropy</strong>.</li>
+            <li>Optimizers: <strong>Adam</strong> and <strong>SGD</strong>.</li>
+            <li>Learning rate tuned in the range <strong>2e-5 to 1e-4</strong> for stable convergence.</li>
+            <li>Training ran for approximately <strong>15 epochs</strong>, with convergence around epoch ~13.</li>
+            <li>Experiments run in <strong>Google Colab</strong> with GPU acceleration.</li>
+            <li>Metrics and artifacts logged using <strong>Weights &amp; Biases</strong>.</li>
+        </ul>
+    </section>
+
+    <!-- Visualizations -->
+    <section id="visualizations">
+        <h2>Visualizations</h2>
+
+        <div class="figure">
+            <img src="images/train_accuracy.png" alt="Training Accuracy Curve">
+            <div class="figure-caption">
+                Figure 1. Training accuracy over epochs for a fine-tuned AlexNet configuration.
+            </div>
+        </div>
+
+        <div class="figure">
+            <img src="images/valid_accuracy.png" alt="Validation Accuracy Curve">
+            <div class="figure-caption">
+                Figure 2. Validation accuracy over epochs, showing stable generalization around ~89–90%.
+            </div>
+        </div>
+    </section>
+
+    <!-- Results -->
+    <section id="results">
+        <h2>Results</h2>
+        <p>Key findings from the experiments include:</p>
+        <ul>
+            <li><strong>Fine-tuned pretrained AlexNet</strong> achieved approximately <strong>89% validation accuracy</strong>, outperforming other AlexNet variants.</li>
+            <li><strong>Frozen pretrained AlexNet</strong> reached roughly <strong>85% validation accuracy</strong>, showing that pretrained features help even without full fine-tuning.</li>
+            <li><strong>Untrained AlexNet (from scratch)</strong> performed worst, around <strong>60% validation accuracy</strong>, highlighting the importance of transfer learning.</li>
+            <li><strong>ResNet18 with RGB + Adam</strong> achieved the highest performance, with validation accuracy in the <strong>~92–95%</strong> range.</li>
+        </ul>
+        <p>
+            Confusion matrices from the Weights &amp; Biases runs show that most predictions fall along the diagonal,
+            meaning handguns and rifles are classified correctly most of the time with relatively few misclassifications.
+        </p>
+    </section>
+
+    <!-- Takeaways -->
+    <section id="takeaways">
+        <h2>Takeaways &amp; Future Work</h2>
+        <ul>
+            <li><strong>Transfer learning is critical:</strong> Fine-tuning a pretrained AlexNet significantly improved performance compared to training from scratch.</li>
+            <li><strong>Deeper architectures help:</strong> ResNet18 outperformed AlexNet, suggesting that modern residual networks capture richer visual features.</li>
+            <li><strong>RGB beats grayscale:</strong> Color information provided a measurable performance boost.</li>
+            <li><strong>Optimization details matter:</strong> Adam generally yielded smoother, more stable convergence than SGD.</li>
+        </ul>
+        <p>
+            Future work could include expanding the dataset, moving from image classification to object detection (e.g., YOLO or Faster R-CNN),
+            integrating the model into a live video pipeline, and deploying models on edge devices to support real-time surveillance scenarios.
+        </p>
+    </section>
+</main>
+
+<footer>
+    Sentinel AI · GitHub Pages Project · 2025
+</footer>
+</body>
+</html>
